@@ -1,0 +1,59 @@
+buildscript {
+    ext.kotlin_version = '1.9.24'
+
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.github.johnrengelman:shadow:8.1.1'
+    }
+}
+
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+group = 'com.woxloi'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url 'https://repo.papermc.io/repository/maven-public/'
+    }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    compileOnly files('libs/OraPluginAPI.jar')
+    compileOnly files('libs/Clearlag.jar')
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+shadowJar {
+    archiveFileName = "ClearLagAPI-${project.version}.jar"
+
+    exclude 'oraserver/orapluginapi/**'
+    exclude 'oraserver/orapluginapi/commandapi/**'
+
+    exclude 'kotlin/**'
+    exclude 'kotlinx/**'
+    exclude 'org/jetbrains/**'
+    exclude 'META-INF/kotlin*'
+}
+
