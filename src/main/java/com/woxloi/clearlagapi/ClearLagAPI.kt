@@ -9,7 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin
 class ClearLagAPI : JavaPlugin() {
 
     companion object {
-        val prefix = "§8[§6§lClearLagAPI§8] §r"
+        val prefix = "§6[§aClearLagAPI§6] §r"
         lateinit var instance: ClearLagAPI
             private set
     }
