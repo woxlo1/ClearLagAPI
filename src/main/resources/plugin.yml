@@ -8,3 +8,15 @@ depend:
 
 commands:
   cla:
+    description: ClearLagAPI メインコマンド
+    usage: /cla <items|help|admin>
+    permission: clearlagapi.use
+    aliases: [ clearlagapi ]
+
+permissions:
+  clearlagapi.use:
+    description: /cla コマンドを使用できる
+    default: true
+  clearlagapi.op:
+    description: /cla op コマンドを使用できる（OP自動付与）
+    default: op

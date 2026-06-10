@@ -8,7 +8,7 @@ import org.bukkit.entity.Player
 import oraserver.orapluginapi.inventory.OraInventoryItem
 import oraserver.orapluginapi.inventory.OraPagedInventory
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
 
 class ClearedItemsInventory : OraPagedInventory(
     title = "§c削除されたアイテム一覧"
@@ -19,9 +19,7 @@ class ClearedItemsInventory : OraPagedInventory(
     ): List<OraInventoryItem> {
 
         val sdf =
-            SimpleDateFormat(
-                "yyyy/MM/dd HH:mm:ss"
-            )
+            SimpleDateFormat("yyyy/MM/dd HH:mm:ss")
 
         val now =
             System.currentTimeMillis()
@@ -29,7 +27,6 @@ class ClearedItemsInventory : OraPagedInventory(
         return DataManager
             .getItems(player.uniqueId)
             .filter {
-
                 !it.restored &&
                         now - it.clearedAt <
                         ClearLagConstants.ITEM_EXPIRE_TIME
@@ -39,37 +36,39 @@ class ClearedItemsInventory : OraPagedInventory(
             }
             .map { data ->
 
-                OraInventoryItem(
-                    data.item.clone()
-                )
+                val remainMillis =
+                    ClearLagConstants.ITEM_EXPIRE_TIME -
+                            (System.currentTimeMillis() - data.clearedAt)
+
+                val days =
+                    remainMillis / (1000L * 60 * 60 * 24)
+
+                val hours =
+                    (remainMillis / (1000L * 60 * 60)) % 24
+
+                val minutes =
+                    (remainMillis / (1000L * 60)) % 60
+
+                OraInventoryItem(data.item.clone())
                     .setCanClick(false)
                     .addLore("")
-                    .addLore(
-                        "§7削除日時:"
-                    )
-                    .addLore(
-                        "§f${sdf.format(Date(data.clearedAt))}"
-                    )
+                    .addLore("§7削除日時:")
+                    .addLore("§f${sdf.format(Date(data.clearedAt))}")
                     .addLore("")
-                    .addLore(
-                        "§7落とした主:"
-                    )
-                    .addLore(
-                        "§f${data.ownerName}"
-                    )
+                    .addLore("§7落とした人:")
+                    .addLore("§f${data.ownerName}")
                     .addLore("")
-                    .addLore(
-                        "§aクリックで復元"
-                    )
+                    .addLore("§7受取期限:")
+                    .addLore("§c残り ${days}日 ${hours}時間 ${minutes}分")
+                    .addLore("")
+                    .addLore("§aクリックで復元")
                     .setClickEvent { e ->
 
-                        val p =
-                            e.whoClicked as Player
+                        val p = e.whoClicked as Player
 
                         if (data.restored) {
                             p.sendMessage(
-                                ClearLagAPI.prefix +
-                                        "§c既に復元済みです"
+                                ClearLagAPI.prefix + "§c既に復元済みです"
                             )
                             refresh(p)
                             return@setClickEvent
@@ -80,40 +79,33 @@ class ClearedItemsInventory : OraPagedInventory(
                             data.clearedAt >=
                             ClearLagConstants.ITEM_EXPIRE_TIME
                         ) {
-
                             p.sendMessage(
-                                ClearLagAPI.prefix +
-                                        "§c受け取り期限が切れています"
+                                ClearLagAPI.prefix + "§c受け取り期限が切れています"
                             )
-
                             refresh(p)
                             return@setClickEvent
                         }
 
+                        // ✅ 先にフラグを立てて連打増殖を防ぐ
+                        data.restored = true
+
                         val remain =
-                            p.inventory.addItem(
-                                data.item.clone()
-                            )
+                            p.inventory.addItem(data.item.clone())
 
-                        if (
-                            remain.isNotEmpty()
-                        ) {
-
+                        if (remain.isNotEmpty()) {
+                            // インベントリ満杯なのでフラグを戻す
+                            data.restored = false
                             p.sendMessage(
-                                ClearLagAPI.prefix +
-                                        "§cインベントリに空きがありません"
+                                ClearLagAPI.prefix + "§cインベントリに空きがありません"
                             )
-
                             return@setClickEvent
                         }
 
-                        data.restored = true
-
-                        DataManager.save()
+                        // ✅ markRestored() に統一（リストから除去＆保存）
+                        DataManager.markRestored(data.id)
 
                         p.sendMessage(
-                            ClearLagAPI.prefix +
-                                    "§aアイテムを復元しました"
+                            ClearLagAPI.prefix + "§aアイテムを復元しました"
                         )
 
                         refresh(p)
@@ -128,26 +120,22 @@ class ClearedItemsInventory : OraPagedInventory(
         val now =
             System.currentTimeMillis()
 
+        val count =
+            DataManager.getItems(player.uniqueId).count {
+                !it.restored &&
+                        now - it.clearedAt <
+                        ClearLagConstants.ITEM_EXPIRE_TIME
+            }
+
         setItem(
             contentSize + 4,
-            OraInventoryItem(
-                Material.CHEST
-            )
-                .setDisplayName(
-                    "§e取得可能アイテム"
-                )
-                .addLore(
-                    "§7アイテム数: ${
-                        DataManager.getItems(
-                            player.uniqueId
-                        ).count {
-
-                            !it.restored &&
-                                    now - it.clearedAt <
-                                    ClearLagConstants.ITEM_EXPIRE_TIME
-                        }
-                    }"
-                )
+            OraInventoryItem(Material.CHEST)
+                .setDisplayName("§e取得可能アイテム")
+                .addLore("§7アイテム数: §f$count")
+                .addLore("")
+                .addLore("§7保持期間:")
+                .addLore("§f7日間")
+                .setCanClick(false)
         )
     }
 }

@@ -15,6 +15,8 @@ class ClearLagListener : Listener {
         event: EntityRemoveEvent
     ) {
 
+        var saved = false
+
         event.entityList.forEach { entity ->
 
             if (entity !is Item)
@@ -33,15 +35,21 @@ class ClearLagListener : Listener {
                 ) ?: "Unknown"
 
             val owner =
-                UUID.fromString(
-                    ownerString
-                )
+                UUID.fromString(ownerString)
 
-            DataManager.addItem(
+            // 🟢 修正: save() なしで追加し、最後に1回だけ保存
+            DataManager.addItemWithoutSave(
                 owner,
                 ownerName,
                 entity.itemStack.clone()
             )
+
+            saved = true
+        }
+
+        // 対象アイテムがあった場合のみ1回だけ保存
+        if (saved) {
+            DataManager.save()
         }
     }
 }
