@@ -87,6 +87,7 @@ class AdminItemsInventory(
                     else
                         "§7対象: §f全プレイヤー"
                 )
+                .setCanClick(false)
         )
     }
 
